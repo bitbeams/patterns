@@ -1,0 +1,4 @@
+# Python client for Apache Kafka (Confluent)
+# Used by both producer and consumer apps for high-performance messaging
+# Pinned to 2.3.0 for Python 3.12 macOS/arm64 prebuilt wheel support
+confluent-kafka==2.3.0

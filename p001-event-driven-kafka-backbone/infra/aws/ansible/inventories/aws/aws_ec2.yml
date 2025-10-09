@@ -1,0 +1,16 @@
+plugin: amazon.aws.aws_ec2
+regions:
+  - eu-west-1
+filters:
+  tag:Name:
+    - kafka-vm              # Filter by Name tag
+keyed_groups:
+  - key: tags.Name                 
+    prefix: tag_Name
+hostnames:
+  - public_ip_address              # Use public IP to connect
+compose:
+  ansible_host: public_ip_address  # Needed if using `ansible_host`
+  ansible_user: ubuntu             # Ubuntu AMI default user
+  ansible_ssh_private_key_file: ~/projects/secrets/aws-bitbeams.pem
+  ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o IdentitiesOnly=yes'

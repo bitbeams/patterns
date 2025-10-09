@@ -1,0 +1,5 @@
+---
+- import_playbook: kafka/install-kafka-docker.yml
+- import_playbook: pythonapps/deploy-apps.yml
+- import_playbook: ui/deploy-ui.yml
+

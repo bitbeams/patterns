@@ -1,0 +1,78 @@
+---
+- name: Deploy Kafka Messaging UI Flask App
+  hosts: tag_Name_kafka_vm
+  become: yes
+
+  tasks:
+    - name: Ensure /opt/ui directory exists
+      file:
+        path: /opt/ui
+        state: directory
+        mode: '0755'
+
+    - name: Copy messaging-ui.py to EC2
+      copy:
+        src: ../../../../../apps/ui/messaging-ui.py
+        dest: /opt/ui/messaging-ui.py
+        mode: '0755'
+
+    - name: Ensure /opt/ui/templates directory exists
+      file:
+        path: /opt/ui/templates
+        state: directory
+        mode: '0755'
+
+    - name: Ensure /opt/ui/static directory exists
+      file:
+        path: /opt/ui/static
+        state: directory
+        mode: '0755'
+
+    - name: Copy index.html to EC2
+      copy:
+        src: ../../../../../apps/ui/templates/index.html
+        dest: /opt/ui/templates/index.html
+        mode: '0644'
+
+    - name: Copy messages.js to EC2
+      copy:
+        src: ../../../../../apps/ui/static/messages.js
+        dest: /opt/ui/static/messages.js
+        mode: '0644'
+    - name: Install Python dependencies for UI
+      pip:
+        name:
+          - flask
+          - confluent-kafka
+        executable: pip3
+
+    - name: Create systemd service for messaging UI
+      copy:
+        dest: /etc/systemd/system/messaging-ui.service
+        content: |
+          [Unit]
+          Description=Kafka Messaging UI Flask Service
+          After=network.target
+
+          [Service]
+          Type=simple
+          ExecStart=/usr/bin/python3 /opt/ui/messaging-ui.py
+          Restart=always
+
+          [Install]
+          WantedBy=multi-user.target
+
+      notify: Restart messaging-ui
+
+    - name: Enable and start messaging-ui service
+      systemd:
+        name: messaging-ui
+        enabled: yes
+        state: started
+
+
+  handlers:
+    - name: Restart messaging-ui
+      systemd:
+        name: messaging-ui
+        state: restarted

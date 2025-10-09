@@ -1,0 +1,73 @@
+- name: Install Python 3 and pip
+  apt:
+    name:
+      - python3
+      - python3-pip
+    state: present
+  become: yes
+
+- name: Ensure /opt/producer-python directory exists
+  file:
+    path: /opt/producer-python
+    state: directory
+    mode: '0755'
+  become: yes
+
+- name: Copy producer.py to server
+  copy:
+    src: "{{ playbook_dir }}/../../../../../apps/producer-python/producer.py"
+    dest: /opt/producer-python/producer.py
+    mode: '0755'
+
+- name: Ensure /opt/consumer-python directory exists
+  file:
+    path: /opt/consumer-python
+    state: directory
+    mode: '0755'
+  become: yes
+
+- name: Copy consumer.py
+  copy:
+    src: "{{ playbook_dir }}/../../../../../apps/consumer-python/consumer.py"
+    dest: /opt/consumer-python/consumer.py
+    mode: '0755'
+
+- name: Copy requirements.txt
+  copy:
+    src: "{{ playbook_dir }}/../../../../../apps/requirements.txt"
+    dest: /opt/consumer-python/requirements.txt
+    mode: '0644'
+
+- name: Install Python dependencies
+  pip:
+    requirements: /opt/consumer-python/requirements.txt
+    executable: pip3
+
+- name: Create systemd service for consumer
+  copy:
+    dest: /etc/systemd/system/kafka-consumer.service
+    content: |
+      [Unit]
+      Description=Kafka Consumer Python Service
+      After=network.target
+
+      [Service]
+      Type=simple
+      Environment="KAFKA_BOOTSTRAP={{ hostvars[inventory_hostname]['kafka_broker_ip'] | default('localhost:9094') }}"
+      ExecStart=/usr/bin/python3 /opt/consumer-python/consumer.py --mode main
+      Restart=always
+
+      [Install]
+      WantedBy=multi-user.target
+
+#   notify: Restart kafka-consumer
+
+# - name: Enable and start kafka-consumer service
+#   systemd:
+#     name: kafka-consumer
+#     enabled: yes
+#     state: started
+
+
+
+

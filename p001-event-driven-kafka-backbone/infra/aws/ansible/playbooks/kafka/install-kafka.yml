@@ -1,0 +1,218 @@
+---
+- name: Install and configure Kafka 3.7 in KRaft mode on Ubuntu
+  hosts: tag_Name_kafka_vm
+  become: yes
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install required packages
+      apt:
+        name:
+          - openjdk-21-jdk
+          - wget
+          - tar
+        state: present
+
+    - name: Download Kafka 3.7.2
+      get_url:
+        url: "https://downloads.apache.org/kafka/3.7.2/kafka_2.13-3.7.2.tgz"
+        dest: /tmp/kafka.tgz
+
+    - name: Extract Kafka
+      unarchive:
+        src: /tmp/kafka.tgz
+        dest: /opt/
+        remote_src: yes
+
+    - name: Ensure Kafka config directory exists
+      file:
+        path: /opt/kafka_2.13-3.7.2/config
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Configure Kafka for KRaft mode
+      copy:
+        dest: /opt/kafka_2.13-3.7.2/config/server.properties
+        content: |
+          process.roles=broker,controller
+          node.id=1
+          controller.listener.names=CONTROLLER
+          listeners=INTERNAL://:9092,PLAINTEXT://:9094,CONTROLLER://:9093
+          advertised.listeners=INTERNAL://localhost:9092,PLAINTEXT://localhost:9094
+          listener.security.protocol.map=INTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+          inter.broker.listener.name=INTERNAL
+          controller.quorum.voters=1@localhost:9093
+          auto.create.topics.enable=false
+
+    - name: Create Kafka systemd service file
+      copy:
+        dest: /etc/systemd/system/kafka.service
+        content: |
+          [Unit]
+          Description=Apache Kafka Server
+          After=network.target
+
+          [Service]
+          Type=simple
+          User=root
+          Environment="KAFKA_HEAP_OPTS=-Xmx512m -Xms256m"
+          ExecStart=/opt/kafka_2.13-3.7.2/bin/kafka-server-start.sh /opt/kafka_2.13-3.7.2/config/server.properties
+          ExecStop=/opt/kafka_2.13-3.7.2/bin/kafka-server-stop.sh
+          Restart=on-failure
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Initialize KRaft metadata directory
+      command: >
+        /opt/kafka_2.13-3.7.2/bin/kafka-storage.sh format
+        --config /opt/kafka_2.13-3.7.2/config/server.properties
+        --cluster-id abcdefghijklmnopqrstuv
+        --ignore-formatted
+      args:
+        creates: /opt/kafka_2.13-3.7.2/data/meta.properties
+
+    - name: Ensure 'kafka' hostname resolves to localhost
+      lineinfile:
+        path: /etc/hosts
+        line: "127.0.0.1 kafka"
+        state: present
+        create: yes
+
+    - name: Start Kafka service
+      systemd:
+        name: kafka
+        state: started
+        enabled: yes
+
+    - name: Verify Kafka installation
+      command: /opt/kafka_2.13-3.7.2/bin/kafka-topics.sh --list --bootstrap-server localhost:9092
+      register: kafka_topics
+      changed_when: false
+      tags: verify
+
+    - name: Display Kafka topics
+      debug:
+        msg: "{{ kafka_topics.stdout_lines }}"
+      tags: verify
+
+    - name: Download Redpanda Console
+      get_url:
+        url: "https://github.com/redpanda-data/console/releases/download/v3.2.0/redpanda_console_3.2.0_linux_amd64.tar.gz"
+        dest: /tmp/console.tar.gz
+
+    - name: Extract Redpanda Console
+      unarchive:
+        src: /tmp/console.tar.gz
+        dest: /usr/local/bin/
+        remote_src: yes
+        extra_opts: [--strip-components=0]
+
+    - name: Make Redpanda Console executable
+      file:
+        path: /usr/local/bin/redpanda-console
+        mode: '0755'
+        state: file
+
+    - name: Create symlink for console
+      file:
+        src: /usr/local/bin/redpanda-console
+        dest: /usr/local/bin/console
+        state: link
+
+    - name: Ensure Redpanda config directory exists
+      file:
+        path: /etc/redpanda
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Create Redpanda Console config
+      copy:
+        dest: /etc/redpanda/redpanda-console-config.yaml
+        content: |
+          kafka:
+            brokers:
+              - "localhost:9092"
+          server:
+            listenAddress: "0.0.0.0"
+            listenPort: 8080
+
+    - name: Create Redpanda Console systemd service
+      copy:
+        dest: /etc/systemd/system/redpanda-console.service
+        content: |
+          [Unit]
+          Description=Redpanda Console
+          After=network.target
+
+          [Service]
+          Type=simple
+          User=root
+          Environment=CONFIG_FILEPATH=/etc/redpanda/redpanda-console-config.yaml
+          ExecStart=/usr/local/bin/console -config.filepath /etc/redpanda/redpanda-console-config.yaml
+          Restart=on-failure
+          RestartSec=3
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Reload systemd units
+      systemd:
+        daemon_reload: yes
+
+    - name: Start and enable Redpanda Console
+      systemd:
+        name: redpanda-console
+        state: started
+        enabled: yes
+
+    - name: Create orders.v1 topic
+      command: >
+        /opt/kafka_2.13-3.7.2/bin/kafka-topics.sh
+        --bootstrap-server localhost:9094
+        --create
+        --topic orders.v1
+        --partitions 3
+        --replication-factor 1
+        --config retention.ms=604800000
+      ignore_errors: yes
+
+    - name: Create orders.retry topic
+      command: >
+        /opt/kafka_2.13-3.7.2/bin/kafka-topics.sh
+        --bootstrap-server localhost:9094
+        --create
+        --topic orders.retry
+        --partitions 3
+        --replication-factor 1
+        --config retention.ms=604800000
+      ignore_errors: yes
+
+    - name: Create orders.dlq topic
+      command: >
+        /opt/kafka_2.13-3.7.2/bin/kafka-topics.sh
+        --bootstrap-server localhost:9094
+        --create
+        --topic orders.dlq
+        --partitions 3
+        --replication-factor 1
+        --config retention.ms=604800000
+      ignore_errors: yes
+
+    - name: Deploy Python apps
+      import_tasks: ../../roles/kafka/tasks/deploy-apps.yml
+      tags: deploy-apps
+      
+  handlers:
+    - name: Restart kafka-consumer
+      systemd:
+        name: kafka-consumer
+        state: restarted
+
