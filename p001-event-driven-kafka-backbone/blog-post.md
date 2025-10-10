@@ -117,10 +117,19 @@ Ready to try this out? Here's how to set up, deploy, and use the event-driven Ka
 - **Python 3** installed on the target server (automated by Ansible)
 - **Make** utility installed locally (optional, for convenience)
 
-### 1. Clone the Repository
+### 1. Clone the Project
+You can clone just this specific project instead of the entire patterns repository:
+
 ```sh
-git clone <repo-url>
-cd features/f001-event-driven-kafka-backbone
+# Option 1: Clone only this project using sparse checkout
+git clone --filter=blob:none --sparse https://github.com/bitbeams/patterns.git
+cd patterns
+git sparse-checkout set p001-event-driven-kafka-backbone
+cd p001-event-driven-kafka-backbone
+
+# Option 2: Clone the full repository
+git clone https://github.com/bitbeams/patterns.git
+cd patterns/p001-event-driven-kafka-backbone
 ```
 
 ### 2. Provision Infrastructure with Terraform
