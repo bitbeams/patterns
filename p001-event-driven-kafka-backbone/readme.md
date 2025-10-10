@@ -119,7 +119,7 @@ Ready to try this out? Here's how to set up, deploy, and use the event-driven Ka
 
 ### 1. Clone the Project
 You can clone just this specific project instead of the entire patterns repository:
-
+ 
 ```sh
 # Option 1: Clone only this project using sparse checkout
 git clone --filter=blob:none --sparse https://github.com/bitbeams/patterns.git
