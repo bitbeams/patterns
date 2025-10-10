@@ -174,7 +174,7 @@ make destroy-server      # Tears down infrastructure
 
 ### 6. Producing and Consuming Messages
 - **Produce messages:**
-  - Use the web UI or run the producer script (`producer.py`) to send messages to `orders.v1`.
+  - Use the web UI to send messages to `orders.v1`.
 - **Consumers:**
   - Systemd services for main and retry consumers will process messages and handle retries/DLQ automatically.
 
