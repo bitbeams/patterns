@@ -2,7 +2,7 @@
 
 Event-driven architectures are powerful, but they come with challenges. What happens when message processing fails? How do you ensure no events are lost while maintaining system reliability? This post explores a proven solution: the Dead Letter Queue (DLQ) pattern with Kafka, and shows you how to implement it with automated deployment.
 
-## The Pattern: Dead Letter Queue (DLQ) with Retry Logic
+## The Pattern: Dead Letter Queue (DLQ) with Retry Logic 
 
 ### Pattern Overview
 The Dead Letter Queue pattern implements robust, fault-tolerant event processing in Apache Kafka using three topics:
