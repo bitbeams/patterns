@@ -1,11 +1,11 @@
-# Building Reliable Event Processing with Kafka: The Main–Retry–DLQ Pattern
+# Building Reliable Event Processing with Kafka: The Dead Letter Queue Pattern
 
-Event-driven architectures are powerful, but they come with challenges. What happens when message processing fails? How do you ensure no events are lost while maintaining system reliability? This post explores a proven solution: the Kafka Main–Retry–DLQ pattern, and shows you how to implement it with automated deployment.
+Event-driven architectures are powerful, but they come with challenges. What happens when message processing fails? How do you ensure no events are lost while maintaining system reliability? This post explores a proven solution: the Dead Letter Queue (DLQ) pattern with Kafka, and shows you how to implement it with automated deployment.
 
-## The Pattern: Kafka Main–Retry–DLQ
+## The Pattern: Dead Letter Queue (DLQ) with Retry Logic
 
 ### Pattern Overview
-The Main–Retry–DLQ pattern implements robust, fault-tolerant event processing in Apache Kafka using three topics:
+The Dead Letter Queue pattern implements robust, fault-tolerant event processing in Apache Kafka using three topics:
 - **orders.v1**: Main topic for new order events.
 - **orders.retry**: Holds events that failed initial processing and require another attempt.
 - **orders.dlq**: Dead Letter Queue for events that could not be processed after multiple retries.
@@ -33,7 +33,7 @@ Now let's see how this pattern comes to life in a complete, production-ready imp
 
 ### Overview
 
-This feature implements the Main–Retry–DLQ pattern for order processing using Apache Kafka. It includes automated infrastructure provisioning, application deployment, and a web UI for producing and monitoring messages. The pattern supports message processing, retry of failed messages, and dead-letter queues (DLQ) manual event handling.
+This feature implements the Dead Letter Queue pattern for order processing using Apache Kafka. It includes automated infrastructure provisioning, application deployment, and a web UI for producing and monitoring messages. The pattern supports message processing, retry of failed messages, and dead-letter queues (DLQ) manual event handling.
 
 ### Components & Their Roles
 
@@ -208,7 +208,7 @@ make destroy-server      # Tears down infrastructure
   
 ## Conclusion
 
-The Main–Retry–DLQ pattern is a proven approach for building reliable, observable, and maintainable event-driven systems with Kafka. It ensures that all events are processed or accounted for, supporting both operational excellence and customer satisfaction.
+The Dead Letter Queue pattern is a proven approach for building reliable, observable, and maintainable event-driven systems with Kafka. It ensures that all events are processed or accounted for, supporting both operational excellence and customer satisfaction.
 
 With the automated deployment feature described above, you now have everything you need to implement this pattern in production. The combination of Infrastructure as Code (Terraform), Configuration Management (Ansible), and containerized services (Docker) provides a robust foundation that can be easily replicated across environments.
 
